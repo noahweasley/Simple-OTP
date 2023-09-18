@@ -55,7 +55,7 @@ class _OTPState extends State<OTPTextField> {
   @override
   void dispose() {
     super.dispose();
-    // TODO: Can't dispose off this TextEditControllers, dispose them without bugs
+    // Can't dispose off this TextEditControllers, dispose them without bugs
     //  widget.controller?._dispose();
   }
 
