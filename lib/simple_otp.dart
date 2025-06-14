@@ -1,203 +1,85 @@
-library simple_otp;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:simple_otp/otp_box.dart';
 
-class OTPController {
-  final _codeControllers = List.generate(4, (index) => TextEditingController());
-
-  /// The current otp in the OTP field
-  String get otpValue {
-    return _codeControllers.map((e) => e.text).reduce((p0, p1) => p0 + p1);
-  }
-
-  void _onFinished(Function(String otpValue)? onFinished) {
-    for (var controller in _codeControllers) {
-      controller.addListener(() {
-        if (onFinished != null && otpValue.length == 4) onFinished(otpValue);
-      });
-    }
-  }
-
-  // ignore: unused_element
-  void _dispose() {
-    for (var controller in _codeControllers) {
-      controller.dispose();
-    }
-  }
-}
-
-class OTPTextField extends StatefulWidget {
-  final OTPController? controller;
-  final GlobalKey<FormState>? formKey;
-  final Function(String)? onFinished;
+class SimpleOTPTextField extends StatelessWidget {
   final int fieldCount;
+  final String? otpValue;
+  final bool obscureText;
+  final Widget? error;
+  final double spaceBetweenBoxes;
+  final TextStyle textStyle;
+  final Color? dotColor;
+  final BoxDecoration Function(bool filled) boxDecoration;
 
-  const OTPTextField({
+  const SimpleOTPTextField({
     super.key,
-    this.controller,
     this.fieldCount = 4,
-    this.formKey,
-    this.onFinished,
+    this.otpValue,
+    this.obscureText = false,
+    this.error,
+    this.spaceBetweenBoxes = 12.0,
+    this.textStyle = const TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      color: Colors.black,
+    ),
+    this.dotColor,
+    this.boxDecoration = defaultBoxDecoration,
   });
 
-  @override
-  State<StatefulWidget> createState() => _OTPState();
-}
-
-class _OTPState extends State<OTPTextField> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller?._onFinished(widget.onFinished);
+  String _extractValue(int index) {
+    if ((otpValue?.length ?? 0) > index) {
+      return obscureText ? '•' : otpValue![index];
+    }
+    return '•';
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    // Can't dispose off this TextEditControllers, dispose them without bugs
-    //  widget.controller?._dispose();
+  bool _isFilled(int index) {
+    return (otpValue?.length ?? 0) > index;
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size.width / widget.fieldCount + 1;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final totalSpacing = (fieldCount - 1) * spaceBetweenBoxes;
+    final availableWidth = screenWidth - totalSpacing;
+    final size = (availableWidth / fieldCount) * 0.9;
 
-    return Form(
-      key: widget.formKey,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          SizedBox(
-            height: size,
-            width: size - 4,
-            child: TextFormField(
-              //   controller: _codeControllers[0],
-              validator: (value) => value != null && value.isEmpty ? '' : null,
-              onChanged: (value) => value.length == 1 ? FocusScope.of(context).nextFocus() : null,
-              decoration: InputDecoration(
-                hintText: '*',
-                //  errorStyle: AppStyle.hidden,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.green),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                errorBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.red),
-                  borderRadius: BorderRadius.circular(7),
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(fieldCount, (i) {
+            return Padding(
+              padding: EdgeInsets.only(
+                right: i != fieldCount - 1 ? spaceBetweenBoxes : 0,
               ),
-              //   style: AppStyle.headline3,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(1),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-            ),
-          ),
-          SizedBox(
-            height: size,
-            width: size - 4,
-            child: TextFormField(
-              //   controller: _codeControllers[1],
-              validator: (value) => value != null && value.isEmpty ? '' : null,
-              onChanged: (value) {
-                value.length == 1 ? FocusScope.of(context).nextFocus() : FocusScope.of(context).previousFocus();
-              },
-              decoration: InputDecoration(
-                hintText: '*',
-                //  errorStyle: AppStyle.hidden,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.green),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                errorBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.red),
-                  borderRadius: BorderRadius.circular(7),
-                ),
+              child: OTPBox(
+                size: size,
+                value: _extractValue(i),
+                filled: _isFilled(i),
+                obscure: obscureText,
+                textStyle: textStyle,
+                dotColor: dotColor,
+                decoration: boxDecoration(_isFilled(i)),
               ),
-              //   style: AppStyle.headline3,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(1),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-            ),
-          ),
-          SizedBox(
-            height: size,
-            width: size - 4,
-            child: TextFormField(
-              //   controller: _codeControllers[2],
-              validator: (value) => value != null && value.isEmpty ? '' : null,
-              onChanged: (value) {
-                value.length == 1 ? FocusScope.of(context).nextFocus() : FocusScope.of(context).previousFocus();
-              },
-              decoration: InputDecoration(
-                hintText: '*',
-                //  errorStyle: AppStyle.hidden,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.green),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                errorBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.red),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-              ),
-              //   style: AppStyle.headline3,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(1),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-            ),
-          ),
-          SizedBox(
-            height: size,
-            width: size - 4,
-            child: TextFormField(
-              //   controller: _codeControllers[3],
-              validator: (value) => value != null && value.isEmpty ? '' : null,
-              onChanged: (value) => value.isEmpty ? FocusScope.of(context).previousFocus() : null,
-              decoration: InputDecoration(
-                hintText: '*',
-                //  errorStyle: AppStyle.hidden,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.green),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                errorBorder: OutlineInputBorder(
-                  // borderSide: const BorderSide(color: AppColor.red),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-              ),
-              //   style: AppStyle.headline3,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(1),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-            ),
-          ),
-        ],
+            );
+          }),
+        ),
+        const SizedBox(height: 8),
+        error ?? const SizedBox.shrink(),
+      ],
+    );
+  }
+
+  static BoxDecoration defaultBoxDecoration(bool filled) {
+    return BoxDecoration(
+      border: Border.all(
+        color: filled ? Colors.blue : Colors.grey,
+        width: 1.5,
       ),
+      borderRadius: BorderRadius.circular(8),
     );
   }
 }
